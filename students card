@@ -1,0 +1,794 @@
+Imports System.Data.SqlClient
+Imports System.IO
+Imports System.IO.Compression
+Imports System.IO.Directory
+Imports Excel = Microsoft.Office.Interop.Excel
+
+Public Class mainFrm
+    Private Sub mainFrm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'TODO: This line of code loads data into the 'StuAppDataSet.stu' table. You can move, or remove it, as needed.
+        Me.StuTableAdapter.Fill(Me.StuAppDataSet.stu)
+        TabControl1.Appearance = TabAppearance.FlatButtons
+        TabControl1.ItemSize = New Size(0, 1)
+        TabControl1.SizeMode = TabSizeMode.Fixed
+
+    End Sub
+    Private Sub mainTabB_Click(sender As Object, e As EventArgs) Handles mainTabB.Click
+
+        TabControl1.SelectTab(TabPage1)
+        SrcIDBtn.Visible = True
+        SrcIDtxt.Visible = True
+
+        'save DGV1 TO DB
+        StuAppDataSet.AcceptChanges()
+
+    End Sub
+    Private Sub UploadB_Click(sender As Object, e As EventArgs) Handles UploadB.Click
+        TabControl1.SelectTab(TabPage2)
+        SrcIDBtn.Visible = False
+        SrcIDtxt.Visible = False
+    End Sub
+    Private Sub TabPage2_Click(sender As Object, e As EventArgs) Handles TabPage2.Click
+        TabControl1.Appearance = TabAppearance.FlatButtons
+    End Sub
+    Private Sub ProduB_Click(sender As Object, e As EventArgs) Handles ProduB.Click
+        TabControl1.SelectTab(TabPage3)
+        SrcIDBtn.Visible = False
+        SrcIDtxt.Visible = False
+    End Sub
+    Private Sub Button4_Click(sender As Object, e As EventArgs) Handles Button4.Click
+        TabControl1.SelectTab(TabPage4)
+        SrcIDBtn.Visible = False
+        SrcIDtxt.Visible = False
+    End Sub
+    Private Sub TabPage1_Click(sender As Object, e As EventArgs) Handles TabPage1.Click
+
+
+    End Sub
+    Private Sub ExitB_Click(sender As Object, e As EventArgs) Handles ExitB.Click
+        'save DGV1 TO DB
+        StuAppDataSet.AcceptChanges()
+        Me.Close()
+    End Sub
+    Private Sub OpenFileDialog1_FileOk(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles OpenFileDialog1.FileOk
+        Dim strm As System.IO.Stream
+
+
+        strm = OpenFileDialog1.OpenFile()
+        UploadTxtBox.Text = OpenFileDialog1.FileName.ToString()
+        If Not (strm Is Nothing) Then
+            'insert code to read the file data
+            strm.Close()
+            MessageBox.Show("file closed")
+
+
+        End If
+    End Sub
+    Private Sub SrcIDBtn_Click(sender As Object, e As EventArgs)
+        Dim title = "חיפוש סטודנט"
+
+        Dim rowindex As String
+        Dim found As Boolean = False
+        For Each row As DataGridViewRow In DataGridView1.Rows
+            If row.Cells.Item(1).Value = SrcIDtxt.Text Then
+                rowindex = row.Index.ToString()
+                DataGridView1.Rows(rowindex).Selected = True
+                found = True
+                MsgBox(" לסטודנט " + row.Cells(2).Value.ToString() + " הונפק כרטיס" + row.Cells(8).Value.ToString() + " פעמים", MsgBoxStyle.MsgBoxRtlReading, title.ToString())
+                Exit For
+            End If
+        Next
+        If Not found Then
+            MsgBox("Item not found")
+        End If
+        SrcIDtxt.Text = ".הכנס ת.ז"
+    End Sub
+    Private Sub SrcIDtxt_Click(ByVal sender As Object,
+   ByVal e As System.EventArgs) Handles SrcIDtxt.Click
+        If SrcIDtxt.Text = ".הכנס ת.ז" Then
+            SrcIDtxt.Text = ""
+        End If
+    End Sub
+    Private Sub Hanpca_Click(sender As Object, e As EventArgs) Handles Hanpca.Click
+
+
+
+
+        Dim picPath() As String = Directory.GetFiles("\\acad-dfs\StudentsPhoto\Academy")
+        Dim picfilename As String
+        Dim newDirctory As String
+        Dim countissu As Int32 = 0
+
+        newDirctory = DateTime.Now.ToString("dd.MM.yy-HH.mm")
+        CreateDirectory("\\acad-dfs\StudentsPhoto\Hanpaka\" & newDirctory)
+
+
+        For Each row2 As DataGridViewRow In DataGridView1.Rows
+
+
+            If IsDBNull(row2.Cells.Item(0).Value) Then
+                Continue For
+            End If
+
+            If countissu = 1 Then
+                row2.Cells.Item(8).Value = "123"
+                countissu = 0
+            End If
+            'If row2.Cells.Item(13).Value Is Nothing Then
+            '    MessageBox.Show("Checked: " & row2.Cells.Item(2).Value)
+            '    Continue For
+            'End If
+            'If IsDBNull(row2.Cells.Item(8).Value) Then
+            '    row2.Cells.Item(8).Value = 0
+            'End If
+            'If row2.Cells.Item(8).Value > 0 Then
+            '    Continue For
+            'End If
+
+            If row2.Cells.Item(0).Value = ("902") Or row2.Cells.Item(0).Value = ("100") Or row2.Cells.Item(0).Value = ("50") Then
+
+
+                'find pic in dirctory
+                For Each str As String In picPath
+                    picfilename = Path.GetFileNameWithoutExtension(str)
+                    If row2.Cells.Item(1).Value.ToString = picfilename.ToString Then
+                        'copy to main DGV                  
+                        Try
+                            'drvZone = Me.StuBindingSource.AddNew()
+                            File.Copy("\\acad-dfs\StudentsPhoto\Academy\" & picfilename & ".jpg", "\\acad-dfs\StudentsPhoto\Hanpaka\" & newDirctory & "\" & picfilename & ".jpg")
+                            Dim mone As String = row2.Cells.Item(8).Value.ToString()
+                            countissu = 1
+
+                        Catch ex As Exception
+                            'MsgBox(ex.Message, MsgBoxStyle.Critical)
+                        End Try
+
+                    End If
+                Next
+
+            End If
+
+        Next
+
+        'Exel Export -dgv1
+        Dim i As Int32 = 0
+        Dim app_xls As Object
+        Dim row_cpt, Col_cpt As Integer
+
+        app_xls = CreateObject("Excel.Application")
+
+        Dim xlWorkBook As Excel.Workbook = app_xls.workbooks.add()
+        app_xls.visible = False
+
+        'Export Header Names Start
+        Dim columnsCount As Integer = DataGridView1.Columns.Count
+        For Each column In DataGridView1.Columns
+
+            Dim headertxt As String = DataGridView1.Columns(i).HeaderText
+            app_xls.activesheet.Cells(1, column.Index + 1).Value = headertxt
+            i += 1
+        Next
+
+        'Export Header Name End
+
+        Try
+
+            For Col_cpt = 0 To DataGridView1.ColumnCount - 1
+
+            Next
+            For row_cpt = 0 To DataGridView1.RowCount - 1
+
+                For Col_cpt = 0 To DataGridView1.ColumnCount - 1
+
+                    If IsDBNull(DataGridView1.Item(8, row_cpt).Value) Then
+                        DataGridView1.Item(8, row_cpt).Value = 0
+                    End If
+                    If DataGridView1.Item(8, row_cpt).Value > 0 Then
+                        Continue For
+                    End If
+                    If IsNumeric(DataGridView1.Item(Col_cpt, row_cpt).Value) Then
+                        app_xls.activesheet.cells(row_cpt + 2, Col_cpt + 1).value = CDbl(DataGridView1.Item(Col_cpt, row_cpt).Value)
+                    Else
+                        app_xls.ActiveSheet.cells(row_cpt + 2, Col_cpt + 1).value = DataGridView1.Item(Col_cpt, row_cpt).Value
+                    End If
+
+                Next
+            Next
+            'For Each rows In app_xls.app_xls.activesheet.rows
+            '    If IsDBNull(app_xls.app_xls.activesheet.rows) Then
+            '        MsgBox("asss")
+            '    End If
+            'Next
+            xlWorkBook.SaveAs("\\acad-dfs\StudentsPhoto\Hanpaka\" & newDirctory & "\" & newDirctory & ".xlsx")
+            xlWorkBook.Close()
+        Catch ex As Exception
+        End Try
+
+        'save DGV1 TO DB
+        StuAppDataSet.AcceptChanges()
+
+    End Sub
+    Private Sub Button1_Click_1(sender As Object, e As EventArgs) Handles Button1.Click
+        OpenFileDialog1.Title = "Please Select a File"
+        OpenFileDialog1.InitialDirectory = "C:\"
+        OpenFileDialog1.ShowDialog()
+    End Sub
+    Private Sub Button2_Click_1(sender As Object, e As EventArgs) Handles Button2.Click
+        'אישור העלאה button on tab2- 
+        Dim issuCount = 0
+        Dim countStu = 0
+
+        Dim found As Boolean = False
+        Dim pathup As String = UploadTxtBox.Text
+        Dim MyConnection As System.Data.OleDb.OleDbConnection
+        Dim DtSet As System.Data.DataSet
+        Dim MyCommand As System.Data.OleDb.OleDbDataAdapter
+        Dim sourceGrid As DataGridView = Me.DataGridView2
+        Dim targetGrid As DataGridView = Me.DataGridView3
+        Dim duoplicatID As Int32 = 0
+
+        MyConnection = New System.Data.OleDb.OleDbConnection("provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + pathup + ";Extended Properties=Excel 12.0;")
+        MyCommand = New System.Data.OleDb.OleDbDataAdapter("select * from [Sheet1$]", MyConnection)
+        MyCommand.TableMappings.Add("Table", "Net-informations.com")
+        DtSet = New System.Data.DataSet
+        MyCommand.Fill(DtSet)
+        Dim cellIndex = 0
+        Dim picPath() As String = Directory.GetFiles("\\acad-dfs\StudentsPhoto\Academy")
+        Dim picfilename As String
+
+        'clear DG3
+        DataGridView3.Rows.Clear()
+        DataGridView3.Columns.Clear()
+
+        'dataGrid fill
+        DataGridView2.DataSource = DtSet.Tables(0)
+
+        MyConnection.Close()
+
+        If DataGridView3.Columns.Count = 0 Then
+            'add columns in dt3
+            DataGridView3.Columns.Add("ID", "תעודת זהות")
+            DataGridView3.Columns.Add("name", "שם מלא")
+            DataGridView3.Columns.Add("code", "שלוחה")
+            DataGridView3.Columns.Add("phone", "טלפון")
+            DataGridView3.Columns.Add("mail", "מייל")
+            DataGridView3.Columns.Add("en-name", "שם -אנגלית")
+        End If
+
+        'find and copy all student card 
+        For Each row As DataGridViewRow In DataGridView2.Rows
+            duoplicatID = 0
+            For Each row2 As DataGridViewRow In DataGridView1.Rows
+                'find duplicat id record
+                If row.Cells.Item(0).Value = row2.Cells.Item(1).Value Then
+
+                    DataGridView3.Rows.Add(row.Cells(0).Value, row.Cells(1).Value, row.Cells(2).Value, row.Cells(3).Value, row.Cells(4).Value, row.Cells(5).Value)
+                    Dim DGV3Count As Int32 = DataGridView3.NewRowIndex
+                    duoplicatID = 1
+
+                    Continue For
+                End If
+
+            Next
+            'if not found duplicat id record
+            If duoplicatID = 0 Then
+                If row.Cells.Item(2).Value = ("902") Or row.Cells.Item(2).Value = ("100") Or row.Cells.Item(2).Value = ("50") Then
+
+                    Dim drvZone As DataRowView
+
+                    'find pic in dirctory
+                    For Each str As String In picPath
+                        picfilename = Path.GetFileNameWithoutExtension(str)
+                        If row.Cells.Item(0).Value = picfilename.ToString Then
+                            'copy to main DGV                  
+                            Try
+                                drvZone = Me.StuBindingSource.AddNew()
+                                drvZone.Row.Item(1) = row.Cells(0).Value
+                                drvZone.Row.Item(2) = row.Cells(1).Value
+                                drvZone.Row.Item(0) = row.Cells(2).Value
+                                drvZone.Row.Item(3) = "1"
+                                drvZone.Row.Item(4) = DateTime.Now.ToShortDateString
+                                drvZone.Row.Item(7) = False
+                                drvZone.Row.Item(8) = issuCount
+                                drvZone.Row.Item(10) = row.Cells(3).Value
+                                drvZone.Row.Item(11) = row.Cells(4).Value
+                                drvZone.Row.Item(12) = row.Cells(5).Value
+                                drvZone.Row.Item(9) = True
+                                drvZone.Row.Item(12) = row.Cells(5).Value
+                                drvZone.Row.Item(13) = False
+                            Catch ex As Exception
+                            End Try
+                        End If
+                    Next
+                Else
+
+                    'insert the others card (not student card)
+                    Dim drvZone As DataRowView
+                    Try
+                        drvZone = Me.StuBindingSource.AddNew()
+                        drvZone.Row.Item(1) = row.Cells(0).Value
+                        drvZone.Row.Item(2) = row.Cells(1).Value
+                        drvZone.Row.Item(0) = row.Cells(2).Value
+                        drvZone.Row.Item(3) = "2"
+                        drvZone.Row.Item(4) = DateTime.Now.ToShortDateString
+                        drvZone.Row.Item(7) = False
+                        drvZone.Row.Item(8) = issuCount
+                        drvZone.Row.Item(9) = False
+                        drvZone.Row.Item(10) = row.Cells(3).Value
+                        drvZone.Row.Item(11) = row.Cells(4).Value
+                        drvZone.Row.Item(12) = row.Cells(5).Value
+
+                        Me.StuTableAdapter.Update(StuAppDataSet)
+                    Catch ex As Exception
+                    End Try
+                End If
+            End If
+        Next
+
+        'no pic DGV3 Copy
+        For Each row As DataGridViewRow In DataGridView2.Rows
+            Dim nopic = 0
+            If row.Cells.Item(2).Value = ("902") Or row.Cells.Item(2).Value = ("100") Or row.Cells.Item(2).Value = ("50") Then
+                For Each str As String In picPath
+                    picfilename = Path.GetFileNameWithoutExtension(str)
+                    If row.Cells.Item(0).Value = picfilename.ToString Then
+                        nopic = 1
+
+                    End If
+                Next
+                If nopic = 0 Then
+                    DataGridView3.DefaultCellStyle.BackColor = Color.White
+                    DataGridView3.Rows.Add(row.Cells(0).Value, row.Cells(1).Value, row.Cells(2).Value, row.Cells(3).Value, row.Cells(4).Value, row.Cells(5).Value)
+                End If
+            End If
+        Next
+        'change duplicate color row in DGV3
+        For Each row3 As DataGridViewRow In DataGridView3.Rows
+            For Each row2 As DataGridViewRow In DataGridView1.Rows
+                If row3.Cells.Item(0).Value = row2.Cells.Item(1).Value Then
+                    row3.Cells.Item(0).Style.BackColor = Color.Tomato
+                    row3.Cells.Item(1).Style.BackColor = Color.Tomato
+                    row3.Cells.Item(2).Style.BackColor = Color.Tomato
+                    row3.Cells.Item(3).Style.BackColor = Color.Tomato
+                    row3.Cells.Item(4).Style.BackColor = Color.Tomato
+                    row3.Cells.Item(5).Style.BackColor = Color.Tomato
+                End If
+            Next
+        Next
+        'save DGV1 TO DB
+        StuAppDataSet.AcceptChanges()
+
+    End Sub
+    Private Sub exlExport_Click(sender As Object, e As EventArgs) Handles exlExport.Click
+        'export nopic and error
+        Dim i As Int32 = 0
+        Dim app_xls As Object
+        Dim row_cpt, Col_cpt As Integer
+        app_xls = CreateObject("Excel.Application")
+        app_xls.workbooks.add()
+
+        app_xls.visible = True
+
+        'Export Header Names Start
+        Dim columnsCount As Integer = DataGridView3.Columns.Count
+        For Each column In DataGridView3.Columns
+
+            Dim headertxt As String = DataGridView3.Columns(i).HeaderText
+            app_xls.activesheet.Cells(1, column.Index + 1).Value = headertxt
+            i += 1
+        Next
+
+        'Export Header Name End
+
+        Try
+
+            For row_cpt = 0 To DataGridView3.RowCount - 1
+
+                For Col_cpt = 0 To DataGridView3.ColumnCount - 1
+
+
+                    If IsNumeric(DataGridView3.Item(Col_cpt, row_cpt).Value) Then
+                        app_xls.activesheet.cells(row_cpt + 2, Col_cpt + 1).value = CDbl(DataGridView3.Item(Col_cpt, row_cpt).Value)
+                    Else
+                        app_xls.ActiveSheet.cells(row_cpt + 2, Col_cpt + 1).value = DataGridView3.Item(Col_cpt, row_cpt).Value
+                    End If
+                Next
+            Next
+        Catch ex As Exception
+        End Try
+
+    End Sub
+    Private Sub clrErr_Click(sender As Object, e As EventArgs) Handles clrErr.Click
+        DataGridView3.Rows.Clear()
+        DataGridView3.Columns.Clear()
+    End Sub
+
+    Private Sub codeHnpakaBtn_Click(sender As Object, e As EventArgs) Handles codeHnpakaBtn.Click
+        Dim picPath() As String = Directory.GetFiles("\\acad-dfs\StudentsPhoto\Academy")
+        Dim picfilename As String
+        Dim newDirctory As String
+        Dim countissu As Int32 = 0
+
+        newDirctory = DateTime.Now.ToString("dd.MM.yy-HH.mm")
+        CreateDirectory("\\acad-dfs\StudentsPhoto\Hanpaka\" & newDirctory)
+
+
+        For Each row2 As DataGridViewRow In DataGridView1.Rows
+
+
+            If IsDBNull(row2.Cells.Item(0).Value) Then
+                Continue For
+            End If
+
+            If countissu = 1 Then
+                row2.Cells.Item(8).Value = "123"
+                countissu = 0
+            End If
+            'If row2.Cells.Item(13).Value Is Nothing Then
+            '    MessageBox.Show("Checked: " & row2.Cells.Item(2).Value)
+            '    Continue For
+            'End If
+            'If IsDBNull(row2.Cells.Item(8).Value) Then
+            '    row2.Cells.Item(8).Value = 0
+            'End If
+            'If row2.Cells.Item(8).Value > 0 Then
+            '    Continue For
+            'End If
+
+            If row2.Cells.Item(0).Value = codehnpakaTxtb.Text Then
+
+                If codehnpakaTxtb.Text = "902" Or codehnpakaTxtb.Text = "50" Or codehnpakaTxtb.Text = "100" Then
+
+
+                    'find pic in dirctory
+                    For Each str As String In picPath
+                        picfilename = Path.GetFileNameWithoutExtension(str)
+                        If row2.Cells.Item(1).Value.ToString = picfilename.ToString Then
+                            'copy to main DGV                  
+                            Try
+                                'drvZone = Me.StuBindingSource.AddNew()
+                                File.Copy("\\acad-dfs\StudentsPhoto\Academy\" & picfilename & ".jpg", "\\acad-dfs\StudentsPhoto\Hanpaka\" & newDirctory & "\" & picfilename & ".jpg")
+                                Dim mone As String = row2.Cells.Item(8).Value.ToString()
+                                countissu = 1
+
+                            Catch ex As Exception
+                                'MsgBox(ex.Message, MsgBoxStyle.Critical)
+                            End Try
+
+                        End If
+                    Next
+                End If
+
+            End If
+
+        Next
+
+        'Exel Export -dgv1
+        Dim i As Int32 = 0
+        Dim app_xls As Object
+        Dim row_cpt, Col_cpt As Integer
+
+        app_xls = CreateObject("Excel.Application")
+
+        Dim xlWorkBook As Excel.Workbook = app_xls.workbooks.add()
+        app_xls.visible = False
+
+        'Export Header Names Start
+        Dim columnsCount As Integer = DataGridView1.Columns.Count
+        For Each column In DataGridView1.Columns
+
+            Dim headertxt As String = DataGridView1.Columns(i).HeaderText
+            app_xls.activesheet.Cells(1, column.Index + 1).Value = headertxt
+            i += 1
+        Next
+
+        'Export Header Name End
+
+        Try
+
+            For Col_cpt = 0 To DataGridView1.ColumnCount - 1
+
+            Next
+            For row_cpt = 0 To DataGridView1.RowCount - 1
+
+                For Col_cpt = 0 To DataGridView1.ColumnCount - 1
+
+                    If IsDBNull(DataGridView1.Item(8, row_cpt).Value) Then
+                        DataGridView1.Item(8, row_cpt).Value = 0
+                    End If
+                    If DataGridView1.Item(8, row_cpt).Value > 0 Then
+                        Continue For
+                    End If
+                    If DataGridView1.Item(0, row_cpt).Value = codehnpakaTxtb.Text Then
+
+
+                        If IsNumeric(DataGridView1.Item(Col_cpt, row_cpt).Value) Then
+                            app_xls.ActiveSheet.cells(row_cpt + 2, Col_cpt + 1).value = CDbl(DataGridView1.Item(Col_cpt, row_cpt).Value)
+                        Else
+                            app_xls.ActiveSheet.cells(row_cpt + 2, Col_cpt + 1).value = DataGridView1.Item(Col_cpt, row_cpt).Value
+                        End If
+                    End If
+
+                Next
+            Next
+            xlWorkBook.SaveAs("\\acad-dfs\StudentsPhoto\Hanpaka\" & newDirctory & "\" & newDirctory & ".xlsx")
+
+            For Each rows In app_xls.app_xls.activesheet.rows
+                If IsDBNull(app_xls.app_xls.activesheet.rows) Then
+                    MsgBox("asss")
+                End If
+            Next
+            xlWorkBook.SaveAs("\\acad-dfs\StudentsPhoto\Hanpaka\" & newDirctory & "\" & newDirctory & ".xlsx")
+            xlWorkBook.Close()
+        Catch ex As Exception
+        End Try
+        'save DGV1 TO DB
+        StuAppDataSet.AcceptChanges()
+    End Sub
+
+    Private Sub IDHanpakaBtn_Click(sender As Object, e As EventArgs) Handles IDHanpakaBtn.Click
+        Dim picPath() As String = Directory.GetFiles("\\acad-dfs\StudentsPhoto\Academy")
+        Dim picfilename As String
+        Dim newDirctory As String
+        Dim countissu As Int32 = 0
+
+        newDirctory = DateTime.Now.ToString("dd.MM.yy-HH.mm")
+        CreateDirectory("\\acad-dfs\StudentsPhoto\Hanpaka\" & newDirctory)
+
+
+        For Each row2 As DataGridViewRow In DataGridView1.Rows
+
+
+            If IsDBNull(row2.Cells.Item(0).Value) Then
+                Continue For
+            End If
+
+            If countissu = 1 Then
+                row2.Cells.Item(8).Value = "123"
+                countissu = 0
+            End If
+            'If row2.Cells.Item(13).Value Is Nothing Then
+            '    MessageBox.Show("Checked: " & row2.Cells.Item(2).Value)
+            '    Continue For
+            'End If
+            'If IsDBNull(row2.Cells.Item(8).Value) Then
+            '    row2.Cells.Item(8).Value = 0
+            'End If
+            'If row2.Cells.Item(8).Value > 0 Then
+            '    Continue For
+            'End If
+
+            If row2.Cells.Item(1).Value = IDhnpkaTxtb.Text Then
+
+                If row2.Cells.Item(0).Value = "902" Or codehnpakaTxtb.Text = "50" Or codehnpakaTxtb.Text = "100" Then
+
+
+                    'find pic in dirctory
+                    For Each str As String In picPath
+                        picfilename = Path.GetFileNameWithoutExtension(str)
+                        If row2.Cells.Item(1).Value.ToString = picfilename.ToString Then
+                            'copy to main DGV                  
+                            Try
+                                'drvZone = Me.StuBindingSource.AddNew()
+                                File.Copy("\\acad-dfs\StudentsPhoto\Academy\" & picfilename & ".jpg", "\\acad-dfs\StudentsPhoto\Hanpaka\" & newDirctory & "\" & picfilename & ".jpg")
+                                Dim mone As String = row2.Cells.Item(8).Value.ToString()
+                                countissu = 1
+
+                            Catch ex As Exception
+                                'MsgBox(ex.Message, MsgBoxStyle.Critical)
+                            End Try
+
+                        End If
+                    Next
+                End If
+
+            End If
+
+        Next
+
+        'Exel Export -dgv1
+        Dim i As Int32 = 0
+        Dim app_xls As Object
+        Dim row_cpt, Col_cpt As Integer
+
+        app_xls = CreateObject("Excel.Application")
+
+        Dim xlWorkBook As Excel.Workbook = app_xls.workbooks.add()
+        app_xls.visible = False
+
+        'Export Header Names Start
+        Dim columnsCount As Integer = DataGridView1.Columns.Count
+        For Each column In DataGridView1.Columns
+
+            Dim headertxt As String = DataGridView1.Columns(i).HeaderText
+            app_xls.activesheet.Cells(1, column.Index + 1).Value = headertxt
+            i += 1
+        Next
+
+        'Export Header Name End
+
+        Try
+
+            For Col_cpt = 0 To DataGridView1.ColumnCount - 1
+
+            Next
+            For row_cpt = 0 To DataGridView1.RowCount - 1
+
+                For Col_cpt = 0 To DataGridView1.ColumnCount - 1
+
+                    If IsDBNull(DataGridView1.Item(8, row_cpt).Value) Then
+                        DataGridView1.Item(8, row_cpt).Value = 0
+                    End If
+                    If DataGridView1.Item(8, row_cpt).Value > 0 Then
+                        Continue For
+                    End If
+                    If DataGridView1.Item(1, row_cpt).Value = IDhnpkaTxtb.Text Then
+
+                        If IsNumeric(DataGridView1.Item(Col_cpt, row_cpt).Value) Then
+                            app_xls.ActiveSheet.cells(row_cpt + 2, Col_cpt + 1).value = CDbl(DataGridView1.Item(Col_cpt, row_cpt).Value)
+                        Else
+                            app_xls.ActiveSheet.cells(row_cpt + 2, Col_cpt + 1).value = DataGridView1.Item(Col_cpt, row_cpt).Value
+                        End If
+                    End If
+
+                Next
+            Next
+            xlWorkBook.SaveAs("\\acad-dfs\StudentsPhoto\Hanpaka\" & newDirctory & "\" & newDirctory & ".xlsx")
+
+            For Each rows In app_xls.app_xls.activesheet.rows
+                If IsDBNull(app_xls.app_xls.activesheet.rows) Then
+
+                End If
+            Next
+            xlWorkBook.SaveAs("\\acad-dfs\StudentsPhoto\Hanpaka\" & newDirctory & "\" & newDirctory & ".xlsx")
+            xlWorkBook.Close()
+        Catch ex As Exception
+        End Try
+        'save DGV1 TO DB
+        StuAppDataSet.AcceptChanges()
+    End Sub
+
+    Private Sub uploudBtn_Click(sender As Object, e As EventArgs) Handles uploudBtn.Click
+        OpenFileDialog2.Title = "Please Select a File"
+        OpenFileDialog2.InitialDirectory = "C:\"
+        OpenFileDialog2.ShowDialog()
+    End Sub
+
+    Private Sub uploudinsBtn_Click(sender As Object, e As EventArgs) Handles uploudinsBtn.Click
+        Dim issuCount = 0
+        Dim countStu = 0
+
+        Dim found As Boolean = False
+        Dim pathup As String = uploudTXT.Text
+        Dim MyConnection As System.Data.OleDb.OleDbConnection
+        Dim DtSet As System.Data.DataSet
+        Dim MyCommand As System.Data.OleDb.OleDbDataAdapter
+        Dim sourceGrid As DataGridView = Me.DataGridView2
+        Dim targetGrid As DataGridView = Me.DataGridView4
+        Dim duoplicatID As Int32 = 0
+
+        MyConnection = New System.Data.OleDb.OleDbConnection("provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + pathup + ";Extended Properties=Excel 12.0;")
+        MyCommand = New System.Data.OleDb.OleDbDataAdapter("select * from [Sheet1$]", MyConnection)
+        MyCommand.TableMappings.Add("Table", "Net-informations.com")
+        DtSet = New System.Data.DataSet
+        MyCommand.Fill(DtSet)
+        Dim cellIndex = 0
+        Dim picPath() As String = Directory.GetFiles("\\acad-dfs\StudentsPhoto\Academy")
+        Dim picfilename As String
+        'dataGrid fill
+        DataGridView2.DataSource = DtSet.Tables(0)
+
+        MyConnection.Close()
+
+        If DataGridView4.Columns.Count = 0 Then
+            'add columns in dt3
+            DataGridView4.Columns.Add("ID", "תעודת זהות")
+            DataGridView4.Columns.Add("name", "שם מלא")
+            DataGridView4.Columns.Add("code", "שלוחה")
+            DataGridView4.Columns.Add("phone", "טלפון")
+            DataGridView4.Columns.Add("mail", "מייל")
+            DataGridView4.Columns.Add("en-name", "שם -אנגלית")
+        End If
+
+        'find and copy all student card 
+        For Each row As DataGridViewRow In DataGridView2.Rows
+            duoplicatID = 0
+            For Each row2 As DataGridViewRow In DataGridView1.Rows
+                'find duplicat id record
+                If row.Cells.Item(0).Value = row2.Cells.Item(1).Value Then
+
+                    DataGridView4.Rows.Add(row.Cells(0).Value, row.Cells(1).Value, row.Cells(2).Value, row.Cells(3).Value, row.Cells(4).Value, row.Cells(5).Value)
+                    Dim DGV3Count As Int32 = DataGridView4.NewRowIndex
+                    duoplicatID = 1
+
+                    Continue For
+                End If
+
+            Next
+            'if not found duplicat id record
+            If duoplicatID = 0 Then
+                If row.Cells.Item(2).Value = ("902") Or row.Cells.Item(2).Value = ("100") Or row.Cells.Item(2).Value = ("50") Then
+
+                    Dim drvZone As DataRowView
+
+                    'find pic in dirctory
+                    For Each str As String In picPath
+                        picfilename = Path.GetFileNameWithoutExtension(str)
+                        If row.Cells.Item(0).Value = picfilename.ToString Then
+                            'copy to main DGV                  
+                            Try
+                                drvZone = Me.StuBindingSource.AddNew()
+                                drvZone.Row.Item(1) = row.Cells(0).Value
+                                drvZone.Row.Item(2) = row.Cells(1).Value
+                                drvZone.Row.Item(0) = row.Cells(2).Value
+                                drvZone.Row.Item(3) = "1"
+                                drvZone.Row.Item(4) = DateTime.Now.ToShortDateString
+                                drvZone.Row.Item(7) = False
+                                drvZone.Row.Item(8) = issuCount
+                                drvZone.Row.Item(10) = row.Cells(3).Value
+                                drvZone.Row.Item(11) = row.Cells(4).Value
+                                drvZone.Row.Item(12) = row.Cells(5).Value
+                                drvZone.Row.Item(9) = True
+                                drvZone.Row.Item(12) = row.Cells(5).Value
+                                drvZone.Row.Item(13) = False
+                            Catch ex As Exception
+                            End Try
+                        End If
+                    Next
+                Else
+
+                    'insert the others card (not student card)
+                    Dim drvZone As DataRowView
+                    Try
+                        drvZone = Me.StuBindingSource.AddNew()
+                        drvZone.Row.Item(1) = row.Cells(0).Value
+                        drvZone.Row.Item(2) = row.Cells(1).Value
+                        drvZone.Row.Item(0) = row.Cells(2).Value
+                        drvZone.Row.Item(3) = "2"
+                        drvZone.Row.Item(4) = DateTime.Now.ToShortDateString
+                        drvZone.Row.Item(7) = False
+                        drvZone.Row.Item(8) = issuCount
+                        drvZone.Row.Item(9) = False
+                        drvZone.Row.Item(10) = row.Cells(3).Value
+                        drvZone.Row.Item(11) = row.Cells(4).Value
+                        drvZone.Row.Item(12) = row.Cells(5).Value
+
+                        Me.StuTableAdapter.Update(StuAppDataSet)
+                    Catch ex As Exception
+                    End Try
+                End If
+            End If
+        Next
+    End Sub
+
+    Private Sub OpenFileDialog2_FileOk(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles OpenFileDialog2.FileOk
+        Dim strm As System.IO.Stream
+
+
+        strm = OpenFileDialog2.OpenFile()
+        uploudTXT.Text = OpenFileDialog2.FileName.ToString()
+        If Not (strm Is Nothing) Then
+            'insert code to read the file data
+            strm.Close()
+            MessageBox.Show("file closed")
+
+
+        End If
+    End Sub
+
+    Private Sub SrcIDBtn_Click_1(sender As Object, e As EventArgs) Handles SrcIDBtn.Click
+        Dim temp As Integer = 0
+        For i As Integer = 0 To DataGridView1.RowCount - 1
+            For j As Integer = 0 To DataGridView1.ColumnCount - 1
+                If DataGridView1.Rows(i).Cells(j).Value.ToString = SrcIDtxt.Text Then
+                    DataGridView1.FirstDisplayedScrollingRowIndex = i
+                    MsgBox("Item found")
+                    temp = 1
+                End If
+            Next
+        Next
+        If temp = 0 Then
+            MsgBox("Item not found")
+        End If
+    End Sub
+End Class
