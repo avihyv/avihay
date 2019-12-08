@@ -1,0 +1,19 @@
+Import-Module ActiveDirectory
+Get-ADComputer -Filter "Name -like '*computername*'" -SearchBase "CN=Computers,DC=domain,DC=ac,DC=il" |select name |Export-Csv "C:\scripts\computersOU.txt"
+
+# the path to the text file with the computer account names.
+$computers = Import-Csv C:\scripts\computersOU.txt
+
+# the path to the OU where computers will be moved.
+$TargetOU   =  "OU=Offices,OU=computer policies,OU=ouname Computers,DC=domain,DC=ac,DC=il" 
+
+ForEach( $computer in $computers){
+    
+    
+    $comp = $computer.name
+    #$id = "CN=$comp,CN=Computers,DC=Admin,DC=telhai,DC=ac,DC=il"
+    #Get-ADComputer  CN=$computer.name,CN=Computers,DC=domain,DC=ac,DC=il | Move-ADObject  -TargetPath $TargetOU 
+    Move-ADObject -Identity "CN=$comp ,CN=Computers,DC=domain,DC=ac,DC=il " -TargetPath $TargetOU
+    #$computer
+    #$id
+}
