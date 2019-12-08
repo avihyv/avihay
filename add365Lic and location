@@ -1,0 +1,19 @@
+import-module msonline
+
+$Credential = Import-CliXml -Path "${env:\userprofile}\PASS.Cred"
+connect-msolservice -credential $Credential
+
+#export users without license
+ Get-MsolUser -all -UnlicensedUsersOnly | Where {$_.BlockCredential -eq $False}|Select UserPrincipalName, IsLicensed, BlockCredential |Export-CSV "C:\\Office365 Scripts\Blocked_UsersA.csv" -Force -Encoding Default
+
+#import users file
+ $users = import-csv "C:\Office365 Scripts\Blocked_UsersA.csv" -delimiter ","
+foreach ($user in $users)
+
+{
+    $upn=$user.UserPrincipalName
+    $usagelocation="IL"
+    $SKU="StudentTelhai:STANDARDWOFFPACK_IW_STUDENT"
+    Set-MsolUser -UserPrincipalName $upn -UsageLocation $usagelocation
+    Set-MsolUserLicense -UserPrincipalName $upn -AddLicenses $SKU
+} 
